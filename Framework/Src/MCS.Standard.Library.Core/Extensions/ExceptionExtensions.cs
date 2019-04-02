@@ -9,6 +9,140 @@ namespace MCS.Standard.Library.Core.Extensions
 {
     public static class ExceptionExtensions
     {
+        private static HashSet<Type> _AggregateExceptions = new HashSet<Type>();
+
+        static ExceptionExtensions()
+        {
+            _AggregateExceptions.Add(typeof(AggregateException));
+            _AggregateExceptions.Add(typeof(TargetInvocationException));
+
+#if NetFramework
+            _AggregateExceptions.Add(typeof(System.Web.HttpUnhandledException));
+            _AggregateExceptions.Add(typeof(System.Web.HttpException));
+#endif
+        }
+
+        /// <summary>
+        /// 从Exception对象中，获取真正发生错误的错误对象。
+        /// </summary>
+        /// <param name="ex">Exception对象</param>
+        /// <returns>真正发生错误的错误对象</returns>
+        public static Exception GetRealException(this Exception ex)
+        {
+            System.Exception lastestEx = ex;
+
+#if NetFramework
+            if (ex is SoapException)
+            {
+                lastestEx = new SystemSupportException(GetSoapExceptionMessage(ex), ex);
+            }
+            else
+            {
+                while (ex != null &&
+                    (_AggregateExceptions.Exists(t => ex.GetType() == t || ex.GetType().IsSubclassOf(t))))
+                {
+                    if (ex.InnerException != null)
+                        lastestEx = ex.InnerException;
+                    else
+                        lastestEx = ex;
+
+                    ex = ex.InnerException;
+                }
+            }
+#else
+            while (ex != null &&
+                    (_AggregateExceptions.Exists(t => ex.GetType() == t || ex.GetType().IsSubclassOf(t))))
+            {
+                if (ex.InnerException != null)
+                    lastestEx = ex.InnerException;
+                else
+                    lastestEx = ex;
+
+                ex = ex.InnerException;
+            }
+#endif
+
+            return lastestEx;
+        }
+
+        /// <summary>
+        /// 获取真实异常的描述信息
+        /// </summary>
+        /// <param name="ex"></param>
+        /// <returns></returns>
+        public static string GetRealExceptionMessage(this Exception ex)
+        {
+            string result = string.Empty;
+
+            if (ex != null)
+            {
+                Exception realEx = ex.GetRealException();
+
+                result = realEx.Message;
+
+#if NetFramework
+                if (realEx is SqlException)
+                {
+                    SqlException sqlEx = (SqlException)realEx;
+
+                    StringBuilder strB = new StringBuilder();
+
+                    strB.AppendFormat("{0}", realEx.Message);
+
+                    foreach (SqlError error in sqlEx.Errors)
+                    {
+                        //SQL Server的系统异常都是小于50000的
+                        if (error.Number < 50000)
+                        {
+                            strB.AppendLine();
+                            strB.AppendFormat("Number: {0}, Message: {1}, LineNumber: {2}",
+                                error.Number, error.Message, error.LineNumber);
+                        }
+                    }
+
+                    result = strB.ToString();
+                }
+#endif
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 得到SoapException中的错误信息
+        /// </summary>
+        /// <param name="ex"></param>
+        /// <returns></returns>
+        public static string GetSoapExceptionMessage(Exception ex)
+        {
+            string strNewMsg = ex.Message;
+
+#if NetFramework
+            if (ex is SoapException)
+            {
+                int i = strNewMsg.LastIndexOf("--> ");
+
+                if (i > 0)
+                {
+                    strNewMsg = strNewMsg.Substring(i + 4);
+                    i = strNewMsg.IndexOf(": ");
+
+                    if (i > 0)
+                    {
+                        strNewMsg = strNewMsg.Substring(i + 2);
+
+                        i = strNewMsg.IndexOf("\n   ");
+
+                        if (i > 0)
+                            strNewMsg = strNewMsg.Substring(0, i);
+                    }
+                }
+            }
+#endif
+
+            return strNewMsg;
+        }
+
         /// <summary>
         /// 检查对象是否为空，如果为空，抛出ArgumentNullException
         /// </summary>

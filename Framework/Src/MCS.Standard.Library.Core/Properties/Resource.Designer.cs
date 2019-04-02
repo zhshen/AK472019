@@ -61,6 +61,15 @@ namespace MCS.Standard.Library.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cache项{0}失效了，失效的依赖条件类型是{1}.
+        /// </summary>
+        internal static string DependencyChanged {
+            get {
+                return ResourceManager.GetString("DependencyChanged", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 字符串参数{0}不能为Null或空串.
         /// </summary>
         internal static string StringParamCanNotBeNullOrEmpty {

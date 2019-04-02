@@ -78,5 +78,45 @@ namespace MCS.Standard.Library.Core.Extensions
 
             return result;
         }
+
+        /// <summary>
+        /// 如果时间是MinValue，则执行Action
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="action"></param>
+        /// <returns>返回传入的data</returns>
+        public static DateTime IsMinValue(this DateTime data, Action action)
+        {
+            if (data == DateTime.MinValue && action != null)
+                action();
+
+            return data;
+        }
+
+        /// <summary>
+        /// 如果时间不是MinValue，则执行Action
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="action"></param>
+        /// <returns>返回传入的data</returns>
+        public static DateTime IsNotMinValue(this DateTime data, Action<DateTime> action)
+        {
+            if (data != DateTime.MinValue && action != null)
+                action(data);
+
+            return data;
+        }
+
+        /// <summary>
+        /// 将某个TimeSpan的小时调整为一天之内的时间。算法是+24小时然后在对24取模
+        /// </summary>
+        /// <param name="ts"></param>
+        /// <returns></returns>
+        public static TimeSpan NormallizeHourToOneDay(this TimeSpan ts)
+        {
+            int hour = (ts.Hours + 24) % 24;
+
+            return new TimeSpan(0, ts.Hours, ts.Minutes, ts.Seconds, ts.Milliseconds);
+        }
     }
 }
